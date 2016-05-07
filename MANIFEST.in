@@ -1,0 +1,5 @@
+include *.rst
+include openmeeg_viz/__init__.py
+recursive-include openmeeg_viz *.py
+recursive-include openmeeg_viz *.tri
+recursive-include openmeeg_viz *.geom

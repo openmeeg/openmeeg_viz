@@ -1,0 +1,27 @@
+*.pyc
+*.pyo
+*.sh
+*.so
+*.log
+*~
+.#*
+*.swp
+*.egg*
+
+.DS_Store
+build
+coverage
+
+dist/
+pip-log.txt
+.coverage
+tags
+
+# PyCharm
+.idea/**
+
+# sublime
+*-e
+
+# textmate
+*.tmproj

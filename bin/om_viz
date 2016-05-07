@@ -1,0 +1,131 @@
+#!/usr/bin/env python
+
+"""
+Simple viewer for tri mesh files and OpenMEEG geometry files
+
+Usage
+-----
+
+om_viz model.geom mesh1.tri mesh2.tri dipoles.txt
+
+basically om_viz displays all the files on the command line
+guessing the format with the extensions (.tri, .geom or .txt)
+
+@author: - A. Gramfort, alexandre.gramfort@telecom-paristech.fr
+"""
+
+import sys
+import numpy as np
+import os
+
+
+def read_geom(geom_file):
+    """readGeom : provides paths to meshes present in .geom file"""
+    f = open(geom_file, 'r')
+    lines = f.readlines()
+    mesh_files = []
+    for l in lines:
+        words = l.split()
+        if (len(words) > 1):
+            if (words[0] == "Interfaces"):
+                nb_mesh = words[1]
+                print("Nb mesh files : %d" % nb_mesh)
+
+        if (len(words) == 1):
+            mesh_file = words[0]
+            if (mesh_file[-4:] == ".tri"):
+                mesh_files.append(mesh_file)
+            if not os.path.exists(mesh_file):
+                print("Could not find mesh : " + mesh_file)
+    return mesh_files
+
+
+class Mesh():
+    '''
+    A class allowing to open .tri files, store the corresponding mesh
+    data (vertices and triangles), and plot their respective surfaces
+
+    To read a .tri file, call the function 'self.read_tri(filename)'
+
+    Example:
+    --------
+    head = Mesh()
+    head.read_tri("MyHeadFile.tri")
+
+    To plot the surface of the corresponding object, call the function
+    'self.plot(**kwarg)'. The kwarg options are the one from
+    enthought.mayavi.mlab.triangular_mesh
+
+    '''
+    def __init__(self, fname=None):
+        self.points = []
+        self.faces = []
+        self.normals = []
+        if fname is not None:
+            self.read_tri(fname)
+
+    def read_tri(self, fname):
+        assert(fname.endswith('.tri'))
+        fid = file(fname, "r")
+        # read the number of vertices
+        npoints = int(fid.readline().split()[1])
+        # fills the vertices arrays
+        for _ in xrange(npoints):
+            vals = map(float, fid.readline().split())
+            self.points.append(vals[:3])
+            self.normals.append(vals[3:])
+
+        # Read the number of triangles
+        n_faces = int(fid.readline().split()[1])
+        # create the list of triangles
+        for _ in xrange(n_faces):
+            vals = map(int, fid.readline().split())
+            self.faces.append(vals[:3])
+
+        # Convert to numpy arrays
+        self.points = np.asarray(self.points)
+        self.normals = np.asarray(self.normals)
+        self.faces = np.asarray(self.faces)
+
+    def plot(self, **kwargs):
+        '''Plot mesh with Mayavi
+        '''
+        f = mlab.triangular_mesh(self.points[:, 0], self.points[:, 1],
+                                 self.points[:, 2], self.faces, **kwargs)
+        return f
+
+if __name__ == '__main__':
+    from mayavi import mlab
+
+    colors = []
+    colors.append((0.95, 0.83, 0.83))  # light pink
+    colors.append((0.91, 0.89, 0.67))
+    colors.append((0.67, 0.89, 0.91))  # light blue
+    colors.append((0.68, 0.68, 0.68))  # grey
+
+    colors = colors * 3
+    cnt = 0
+    for ii, fname in enumerate(sys.argv[1:]):
+        print fname
+        if fname.endswith(".tri"):
+            mesh = Mesh(fname)
+            mesh.plot(color=colors[cnt], opacity=0.4)
+            cnt += 1
+
+        if fname.endswith(".geom"):
+            for fn in read_geom(fname):
+                mesh = Mesh(fn)
+                mesh.plot(color=colors[cnt], opacity=0.4)
+                cnt += 1
+
+        if fname.endswith(".txt"):
+            pts = np.loadtxt(fname)
+            if pts.shape[1] == 3:
+                mlab.points3d(pts[:, 0], pts[:, 1], pts[:, 2],
+                              opacity=0.5, scale_factor=1, color=(1, 0, 0))
+            if pts.shape[1] == 6:
+                mlab.quiver3d(pts[:, 0], pts[:, 1], pts[:, 2],
+                              pts[:, 3], pts[:, 4], pts[:, 5],
+                              opacity=0.5, scale_factor=0.01, color=(0, 1, 0),
+                              mode='cone')
+    mlab.show()
