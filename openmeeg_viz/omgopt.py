@@ -146,7 +146,7 @@ def SaveTrimmedFieldVTK(gridxyz, field, filename, FieldName, epsilon):
     SavePolyVTK(tempgrid, N, filename)
     file = open(filename, 'a')
     file.write("POINT_DATA "+str(N)+"\n")
-    if(m ==1):
+    if(m == 1):
         file.write("SCALARS "+FieldName+" float 1\n")
         file.write("LOOKUP_TABLE default\n")
     else:
@@ -571,10 +571,10 @@ def Rotation(v):
 
 
 def Mirror(v, type):
-    if type ==0:
+    if type == 0:
         # type 0: identity
         mat = numpy.diag(numpy.ones(12))
-    elif type = =1:
+    elif type == 1:
         # type 1: mirror through a horizontal plane containing z
         mat = numpy.zeros((12, 12))
         for i in range(0, 4):
@@ -583,7 +583,7 @@ def Mirror(v, type):
             mat[i, 8-i] = 1
         for i in range(8, 12):
             mat[i, 12-i] = 1
-    elif type==2:
+    elif type == 2:
         # type 2: mirror through a vertical plane containing z
         mat = numpy.zeros((12, 12))
         for i in range(0, 6):
@@ -591,7 +591,7 @@ def Mirror(v, type):
         for i in range(1, 6):
             mat[2*i-1, 2*i+1] = 1
             mat[2*i+1, 2*i-1] = 1
-    elif type==3:
+    elif type == 3:
         # type 3: mirror through the central electrode (only if intercuff distances
         # are equal)
         mat = numpy.zeros((12, 12))
