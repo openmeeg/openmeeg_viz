@@ -21,38 +21,54 @@ import vtk
 
 # Common functions ##########################
 
-def UpdateColorBar(colorbar,mapper):
+
+def UpdateColorBar(colorbar, mapper):
     if mapper.GetScalarMode() == 1:
         srange = mapper.GetInput().GetPointData().GetScalars().GetRange()
     else:
         srange = mapper.GetInput().GetCellData().GetScalars().GetRange()
-    tc = vtk.vtkColorTransferFunction(); tc.SetColorSpaceToDiverging()
-    tc.AddRGBPoint(srange[0],0,0,1); tc.AddRGBPoint(sum(srange)/len(srange),1,1,1)
-    tc.AddRGBPoint(srange[1],1,0,0); mapper.SetLookupTable( tc ); colorbar.SetLookupTable( tc );
-    colorbar.SetNumberOfLabels(3); colorbar.SetLabelFormat('%3.3e');
+    tc = vtk.vtkColorTransferFunction()
+    tc.SetColorSpaceToDiverging()
+    tc.AddRGBPoint(srange[0], 0, 0, 1)
+    tc.AddRGBPoint(sum(srange)/len(srange), 1, 1, 1)
+    tc.AddRGBPoint(srange[1], 1, 0, 0)
+    mapper.SetLookupTable(tc)
+    colorbar.SetLookupTable(tc)
+    colorbar.SetNumberOfLabels(3)
+    colorbar.SetLabelFormat('%3.3e')
+
 
 # This callback function does plot the selected points
 def PickData(object, event, selactor, state, view, text_init):
     picker = object.GetPicker()
     hsel = vtk.vtkHardwareSelector()
-    ren = picker.GetRenderer(); hsel.SetRenderer(ren)
-    hsel.SetArea(ren.GetPickX1(),ren.GetPickY1(),ren.GetPickX2(),ren.GetPickY2())
+    ren = picker.GetRenderer()
+    hsel.SetRenderer(ren)
+    hsel.SetArea(ren.GetPickX1(), ren.GetPickY1(),
+                 ren.GetPickX2(), ren.GetPickY2())
     if state:
         hsel.SetFieldAssociation(vtk.vtkDataObject.FIELD_ASSOCIATION_CELLS)
     else:
         hsel.SetFieldAssociation(vtk.vtkDataObject.FIELD_ASSOCIATION_POINTS)
-    sel = hsel.Select(); ex = vtk.vtkExtractSelection()
+    sel = hsel.Select()
+    ex = vtk.vtkExtractSelection()
     if picker.GetMapper():
-        if (not sel.GetNumberOfNodes()==0):
-            ex.SetInputConnection(picker.GetMapper().GetInputConnection(0,0))
-            ex.SetSelectionConnection(sel.GetProducerPort()); ex.Update()
-            selmapper = vtk.vtkDataSetMapper(); data = ex.GetOutput()
-            selmapper.SetInput(data); selmapper.ScalarVisibilityOff()
-            selactor.SetMapper(selmapper); selactor.PickableOff(); 
+        if (not sel.GetNumberOfNodes() == 0):
+            ex.SetInputConnection(picker.GetMapper().GetInputConnection(0, 0))
+            ex.SetSelectionConnection(sel.GetProducerPort())
+            ex.Update()
+            selmapper = vtk.vtkDataSetMapper()
+            data = ex.GetOutput()
+            selmapper.SetInput(data)
+            selmapper.ScalarVisibilityOff()
+            selactor.SetMapper(selmapper)
+            selactor.PickableOff()
             selactor.GetProperty().SetColor(0.0, 1.0, 0.0)
-            selactor.GetProperty().SetOpacity(0.5); selactor.GetProperty().SetPointSize(5)
+            selactor.GetProperty().SetOpacity(0.5)
+            selactor.GetProperty().SetPointSize(5)
             ren.AddActor(selactor)
             PlotSelectedData(data, state, view, text_init)
+
 
 def PlotSelectedData(data, state, view, text_init):
     nb_sources = 0
@@ -65,14 +81,15 @@ def PlotSelectedData(data, state, view, text_init):
     view.GetScene().AddItem(chart)
     chart.SetShowLegend(True)
     table = vtk.vtkTable()
-    X = vtk.vtkDoubleArray(); X.SetName("X")
+    X = vtk.vtkDoubleArray()
+    X.SetName("X")
     if state:
         numPoints = data.GetNumberOfCells()
-        chart.GetAxis(0).SetTitle('Current'); 
+        chart.GetAxis(0).SetTitle('Current')
     else:
         numPoints = data.GetNumberOfPoints()
-        chart.GetAxis(0).SetTitle('Potential'); 
-    chart.GetAxis(0).SetRange(0,nb_sources)
+        chart.GetAxis(0).SetTitle('Potential')
+    chart.GetAxis(0).SetRange(0, nb_sources)
     for j in range(nb_sources):
         X.InsertNextValue(j)
     table.AddColumn(X)
@@ -86,33 +103,37 @@ def PlotSelectedData(data, state, view, text_init):
             if state:
                 Y.InsertNextValue(data.GetCellData().GetGlobalIds('Currents-'+str(j)).GetValue(i))
             else:
-                Y.InsertNextValue(data.GetPointData().GetGlobalIds('Potentials-'+str(j)).GetValue(i))
+                Y.InsertNextValue(data.GetPointData().GetGlobalIds('Potentials-'+
+                                               str(j)).GetValue(i))
         table.AddColumn(Y)
         # Now add the line plots
         line = chart.AddPlot(0)
-        line.SetInput(table,0,i+1)
-        line.SetColor(0,1,0)
+        line.SetInput(table, 0, i+1)
+        line.SetColor(0, 1, 0)
         line.SetWidth(1.0)
     view.GetRenderWindow().Render()
 
 ##################################################
 
-def om_display_vtp(f, n = 0):
+
+def om_display_vtp(f, n=0):
     """
     This function displays a VTK::vtp file generated with OpenMEEG.
     Such a file defines a polydata, containing points and triangles of several
-    meshes which are labelled through a vtkAbstractArray (Strings) associated to
-    the cells (mesh names).
-    Results of the forward problem (or a cortical mapping) can be seen thanks to
-    arrays associated to points and cells (respectively potentials and normals
-    currents).
+    meshes which are labelled through a vtkAbstractArray (Strings) associated
+    to the cells (mesh names).
+    Results of the forward problem (or a cortical mapping) can be seen thanks
+    to arrays associated to points and cells (respectively potentials and
+    normals currents).
     """
     welcome = """Welcome\n\n
-    Switch the button: To either see Potentials (on points) or Currents (on triangles)\n
+    Switch the button: To either see Potentials (on points) or Currents
+    (on triangles)\n
     Move the slider to see all sources (columns of the input matrix)\n
     Press 'r': To select points/cells.\n"""
 
-    # This callback function does updates the mappers for where n is the slider value
+    # This callback function does updates the mappers for where n is the
+    # slider value
     def CleanPickData(object, event):
         for i in range(4):
             rens[i].RemoveActor(selactor)
@@ -120,7 +141,8 @@ def om_display_vtp(f, n = 0):
             PickData(object, event, selactor, 1, view, text_init)
         else:
             PickData(object, event, selactor, 0, view, text_init)
-    def SelectSource(object, event): # object will be the slider2D
+
+    def SelectSource(object, event):  # object will be the slider2D
         slidervalue = int(round(object.GetRepresentation().GetValue()))
         for i in range(4):
             mappers[i].GetInput().GetPointData().SetActiveScalars("Potentials-"+str(slidervalue))
@@ -134,10 +156,10 @@ def om_display_vtp(f, n = 0):
         for i in range(4):
             if (object.GetRepresentation().GetState()):
                 mappers[i].SetScalarModeToUseCellData()
-                renWin.SetWindowName(renWin.GetWindowName().replace('Potentials','Currents'))
+                renWin.SetWindowName(renWin.GetWindowName().replace('Potentials', 'Currents'))
             else:
                 mappers[i].SetScalarModeToUsePointData()
-                renWin.SetWindowName(renWin.GetWindowName().replace('Currents','Potentials'))
+                renWin.SetWindowName(renWin.GetWindowName().replace('Currents', 'Potentials'))
             UpdateColorBar(colorBars[i], mappers[i])
 
     # A window with an interactor
@@ -151,7 +173,8 @@ def om_display_vtp(f, n = 0):
     iren.SetPicker(picker)
     # Read the input file
     reader = vtk.vtkXMLPolyDataReader()
-    reader.SetFileName(f); reader.Update()
+    reader.SetFileName(f)
+    reader.Update()
     poly = reader.GetOutput()
     renWin.SetWindowName(f+' Potentials-'+str(n))
     # determine the number of sources
@@ -164,8 +187,10 @@ def om_display_vtp(f, n = 0):
         poly.GetCellData().SetActiveScalars('Currents-'+str(n))
     # Get the mesh names
     cell_labels = poly.GetCellData().GetAbstractArray(0)
-    assert(cell_labels.GetName()=='Names')
-    s = set(); nb_meshes = 0; cell_ids = list()
+    assert(cell_labels.GetName() == 'Names')
+    s = set()
+    nb_meshes = 0
+    cell_ids = list()
     for i in range(cell_labels.GetNumberOfValues()):
         s.add(cell_labels.GetValue(i))
         if len(s)>nb_meshes:
@@ -175,7 +200,10 @@ def om_display_vtp(f, n = 0):
     # Number of meshes
     assert(nb_meshes<=4)
     # Multiple viewports: 4
-    xmins = [0,.5,0,.5]; xmaxs = [0.5,1,0.5,1]; ymins = [0,0,.5,.5]; ymaxs = [0.5,0.5,1,1]
+    xmins = [0, .5, 0, .5]
+    xmaxs = [0.5, 1, 0.5, 1]
+    ymins = [0, 0, .5, .5]
+    ymaxs = [0.5, 0.5, 1, 1]
 
     mappers   = [vtk.vtkPolyDataMapper() for i in range(4)]
     colorBars = [vtk.vtkScalarBarActor() for i in range(4)]
@@ -183,22 +211,28 @@ def om_display_vtp(f, n = 0):
     rens      = [vtk.vtkRenderer() for i in range(4)]
 
     for i in range(4):
-        rens[i].SetViewport(xmins[i],ymins[i],xmaxs[i],ymaxs[i]);
+        rens[i].SetViewport(xmins[i], ymins[i], xmaxs[i], ymaxs[i])
         # Display the meshes
         if (i < nb_meshes):
-            # Create a connectivity filter based on cell seeded region (to display
-            # only one mesh per viewport)
+            # Create a connectivity filter based on cell seeded region (to
+            # display only one mesh per viewport)
             conn = vtk.vtkPolyDataConnectivityFilter()
             conn.SetInput(poly)
             conn.SetExtractionModeToCellSeededRegions()
-            conn.AddSeed(cell_ids[i]); conn.Update()
-            actor_meshname = vtk.vtkTextActor();
-            actor_meshname.SetInput(cell_labels.GetValue(cell_ids[i]));
-            actor_meshname.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport();
-            actor_meshname.SetPosition(0.5, 0.85); tprop = actor_meshname.GetTextProperty(); tprop.SetFontSize(30)
-            tprop.SetFontFamilyToArial(); tprop.SetColor(1, 1, 1); tprop.SetJustificationToCentered()
+            conn.AddSeed(cell_ids[i])
+            conn.Update()
+            actor_meshname = vtk.vtkTextActor()
+            actor_meshname.SetInput(cell_labels.GetValue(cell_ids[i]))
+            actor_meshname.GetPositionCoordinate().SetCoordinateSystemToNormalizedViewport()
+            actor_meshname.SetPosition(0.5, 0.85)
+            tprop = actor_meshname.GetTextProperty()
+            tprop.SetFontSize(30)
+            tprop.SetFontFamilyToArial()
+            tprop.SetColor(1, 1, 1)
+            tprop.SetJustificationToCentered()
             mappers[i].SetInputConnection(conn.GetOutputPort())
-            mappers[i].SetScalarModeToUsePointData(); mappers[i].Update()
+            mappers[i].SetScalarModeToUsePointData()
+            mappers[i].Update()
             if nb_sources:
                 rens[i].AddActor2D(colorBars[i])
             actors[i].SetMapper(mappers[i])
@@ -209,12 +243,17 @@ def om_display_vtp(f, n = 0):
                 rens[i].ResetCamera()
         else:
             # Create a plane to cut
-            plane = vtk.vtkPlane(); plane.SetOrigin(0,0,0); plane.SetNormal(1,0,0);
+            plane = vtk.vtkPlane()
+            plane.SetOrigin(0, 0, 0)
+            plane.SetNormal(1, 0, 0)
             # Create cutter
-            extract = vtk.vtkExtractPolyDataGeometry(); extract.SetInput(poly)
-            extract.SetImplicitFunction(plane); extract.ExtractBoundaryCellsOff()
+            extract = vtk.vtkExtractPolyDataGeometry()
+            extract.SetInput(poly)
+            extract.SetImplicitFunction(plane)
+            extract.ExtractBoundaryCellsOff()
             mappers[i].SetInputConnection(extract.GetOutputPort())
-            mappers[i].SetScalarModeToUsePointData(); mappers[i].Update()
+            mappers[i].SetScalarModeToUsePointData()
+            mappers[i].Update()
             # Create plane actor
             actors[i].SetMapper(mappers[i])
             rens[i].AddActor(actors[i])
@@ -222,43 +261,56 @@ def om_display_vtp(f, n = 0):
         if nb_sources:
             UpdateColorBar(colorBars[i], mappers[i])
         renWin.AddRenderer(rens[i])
-        renWin.Render();
+        renWin.Render()
 
     if nb_sources > 1:
         # Slider
         sliderWidget = vtk.vtkSliderWidget()
-        slider = vtk.vtkSliderRepresentation2D(); slider.SetMaximumValue(nb_sources-1)
-        slider.SetValue(n); slider.SetEndCapLength(0.01); slider.SetLabelFormat('%1.0f')
-        slider.SetSliderWidth(0.05); slider.SetSliderLength(1./nb_sources)
+        slider = vtk.vtkSliderRepresentation2D()
+        slider.SetMaximumValue(nb_sources-1)
+        slider.SetValue(n)
+        slider.SetEndCapLength(0.01)
+        slider.SetLabelFormat('%1.0f')
+        slider.SetSliderWidth(0.05)
+        slider.SetSliderLength(1./nb_sources)
         slider.GetPoint1Coordinate().SetCoordinateSystemToNormalizedViewport()
-        slider.GetPoint1Coordinate().SetValue(.0 ,0.02)
+        slider.GetPoint1Coordinate().SetValue(.0, 0.02)
         slider.GetPoint2Coordinate().SetCoordinateSystemToNormalizedViewport()
-        slider.GetPoint2Coordinate().SetValue(1. ,0.02);
-        sliderWidget.SetInteractor(iren); sliderWidget.SetRepresentation(slider);
-        sliderWidget.SetAnimationModeToAnimate(); sliderWidget.EnabledOn();
-        sliderWidget.AddObserver("InteractionEvent", SelectSource);
+        slider.GetPoint2Coordinate().SetValue(1., 0.02)
+        sliderWidget.SetInteractor(iren)
+        sliderWidget.SetRepresentation(slider)
+        sliderWidget.SetAnimationModeToAnimate()
+        sliderWidget.EnabledOn()
+        sliderWidget.AddObserver("InteractionEvent", SelectSource)
     if not nb_sources == 0:
         # The button for choosing Potentials/Currents
         buttonWidget = vtk.vtkButtonWidget()
-        button = vtk.vtkTexturedButtonRepresentation2D(); button.SetNumberOfStates(2)
-        tex1r = vtk.vtkImageData(); tex2r = vtk.vtkImageData();
-        prop  = vtk.vtkTextProperty(); prop.SetFontSize(24);
-        prop.SetColor(1,0,0); prop.SetBold(2); prop.SetShadow(2); 
+        button = vtk.vtkTexturedButtonRepresentation2D()
+        button.SetNumberOfStates(2)
+        tex1r = vtk.vtkImageData()
+        tex2r = vtk.vtkImageData()
+        prop  = vtk.vtkTextProperty()
+        prop.SetFontSize(24)
+        prop.SetColor(1, 0, 0)
+        prop.SetBold(2)
+        prop.SetShadow(2)
         str2im = vtk.vtkFreeTypeStringToImage()
-        str2im.RenderString(prop,'Potentials',tex1r)
-        str2im.RenderString(prop,'Currents',tex2r)
+        str2im.RenderString(prop, 'Potentials', tex1r)
+        str2im.RenderString(prop, 'Currents', tex2r)
         button.SetButtonTexture(0, tex1r)
         button.SetButtonTexture(1, tex2r)
-        buttonWidget.SetInteractor(iren);
-        buttonWidget.SetRepresentation(button);
-        button.SetPlaceFactor(1);
-        button.PlaceWidget([0., 100, 50, 500, 0, 0]);
+        buttonWidget.SetInteractor(iren)
+        buttonWidget.SetRepresentation(button)
+        button.SetPlaceFactor(1)
+        button.PlaceWidget([0., 100, 50, 500, 0, 0])
         buttonWidget.On()
-        buttonWidget.AddObserver(vtk.vtkCommand.StateChangedEvent,SelectMode);
+        buttonWidget.AddObserver(vtk.vtkCommand.StateChangedEvent, SelectMode)
         # Selection
         selactor = vtk.vtkActor()
-        view = vtk.vtkContextView(); view.GetRenderWindow().SetWindowName('Plot')
-        view.GetRenderWindow().SetPosition(600, 0); view.GetRenderWindow().SetSize(600, 600)
+        view = vtk.vtkContextView()
+        view.GetRenderWindow().SetWindowName('Plot')
+        view.GetRenderWindow().SetPosition(600, 0)
+        view.GetRenderWindow().SetSize(600, 600)
         # Welcome text
         text_init = vtk.vtkTextActor()
         text_init.SetPosition(10, 300)
@@ -266,11 +318,12 @@ def om_display_vtp(f, n = 0):
         text_init.GetTextProperty().SetColor(1.0, 0.0, 0.0)
         view.GetRenderer().AddActor2D(text_init)
         view.GetInteractor().Initialize()
-        iren.AddObserver(vtk.vtkCommand.EndPickEvent,CleanPickData)
+        iren.AddObserver(vtk.vtkCommand.EndPickEvent, CleanPickData)
     iren.Initialize()
     iren.Start()
 
-def om_display_vtk(f,d = 0,n = 0):
+
+def om_display_vtk(f, d = 0, n = 0):
     """
     This function displays a VTK::vtk file generated with OpenMEEG.
     Such a file defines a polydata, containing points and triangles of a single
@@ -280,7 +333,8 @@ def om_display_vtk(f,d = 0,n = 0):
     Move the slider to see all sources (columns of the input matrix)\n
     Press 'r': To select points/cells.\n"""
 
-    # This callback function does updates the mappers for where n is the slider value
+    # This callback function does updates the mappers for where n is the slider
+    # value
     def CleanPickData(object, event):
         ren.RemoveActor(selactor)
         PickData(object, event, selactor, 0, view, text_init)
@@ -302,7 +356,8 @@ def om_display_vtk(f,d = 0,n = 0):
     iren.SetPicker(picker)
     # Read the input file
     reader = vtk.vtkPolyDataReader()
-    reader.SetFileName(f); reader.Update()
+    reader.SetFileName(f)
+    reader.Update()
     poly = reader.GetOutput()
     renWin.SetWindowName(f+' Potentials-'+str(n))
     # determine the number of sources
@@ -318,7 +373,7 @@ def om_display_vtk(f,d = 0,n = 0):
             for j in range(d.shape[1]):
                 pot[j].SetName('Potentials-'+str(j))
                 for i in range(d.shape[0]):
-                    pot[j].InsertNextValue(d[i,j])
+                    pot[j].InsertNextValue(d[i, j])
                 poly.GetPointData().AddArray(pot[j])
             poly.Update()
         if not poly.GetPointData().GetGlobalIds('Indices'):
@@ -335,7 +390,8 @@ def om_display_vtk(f,d = 0,n = 0):
     actor    = vtk.vtkActor()
     ren      = vtk.vtkRenderer()
     mapper.SetInput(poly)
-    mapper.SetScalarModeToUsePointData(); mapper.Update()
+    mapper.SetScalarModeToUsePointData()
+    mapper.Update()
     actor.SetMapper(mapper)
     ren.AddActor(actor)
     if nb_sources:
@@ -347,20 +403,28 @@ def om_display_vtk(f,d = 0,n = 0):
     if nb_sources > 1:
         # Slider
         sliderWidget = vtk.vtkSliderWidget()
-        slider = vtk.vtkSliderRepresentation2D(); slider.SetMaximumValue(nb_sources-1)
-        slider.SetValue(n); slider.SetEndCapLength(0.01); slider.SetLabelFormat('%1.0f')
-        slider.SetSliderWidth(0.05); slider.SetSliderLength(1./nb_sources)
+        slider = vtk.vtkSliderRepresentation2D()
+        slider.SetMaximumValue(nb_sources-1)
+        slider.SetValue(n)
+        slider.SetEndCapLength(0.01)
+        slider.SetLabelFormat('%1.0f')
+        slider.SetSliderWidth(0.05)
+        slider.SetSliderLength(1./nb_sources)
         slider.GetPoint1Coordinate().SetCoordinateSystemToNormalizedViewport()
         slider.GetPoint1Coordinate().SetValue(.0, 0.02)
         slider.GetPoint2Coordinate().SetCoordinateSystemToNormalizedViewport()
-        slider.GetPoint2Coordinate().SetValue(1., 0.02);
-        sliderWidget.SetInteractor(iren); sliderWidget.SetRepresentation(slider);
-        sliderWidget.SetAnimationModeToAnimate(); sliderWidget.EnabledOn();
-        sliderWidget.AddObserver("InteractionEvent", SelectSource);
+        slider.GetPoint2Coordinate().SetValue(1., 0.02)
+        sliderWidget.SetInteractor(iren)
+        sliderWidget.SetRepresentation(slider)
+        sliderWidget.SetAnimationModeToAnimate()
+        sliderWidget.EnabledOn()
+        sliderWidget.AddObserver("InteractionEvent", SelectSource)
         # Selection
         selactor = vtk.vtkActor()
-        view = vtk.vtkContextView(); view.GetRenderWindow().SetWindowName('Plot')
-        view.GetRenderWindow().SetPosition(600, 0); view.GetRenderWindow().SetSize(600, 600)
+        view = vtk.vtkContextView()
+        view.GetRenderWindow().SetWindowName('Plot')
+        view.GetRenderWindow().SetPosition(600, 0)
+        view.GetRenderWindow().SetSize(600, 600)
         # Welcome text
         text_init = vtk.vtkTextActor()
         text_init.SetPosition(10, 300)
@@ -368,6 +432,6 @@ def om_display_vtk(f,d = 0,n = 0):
         text_init.GetTextProperty().SetColor(1.0, 0.0, 0.0)
         view.GetRenderer().AddActor2D(text_init)
         view.GetInteractor().Initialize()
-        iren.AddObserver(vtk.vtkCommand.EndPickEvent,CleanPickData)
+        iren.AddObserver(vtk.vtkCommand.EndPickEvent, CleanPickData)
     iren.Initialize()
     iren.Start()
