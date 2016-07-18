@@ -1,15 +1,15 @@
-# Domain Description 1.0
+# Domain Description 1.1
 
-Interfaces 3 Mesh
+Interfaces 3
 
-skull.tri
-brain.tri
-head.tri
+Interface skull: "skull.tri"
+Interface brain: "brain.tri"
+Interface head: "head.tri"
 
 Domains 4
 
-Domain Scalp 1 -3
-Domain Brain -2 shared
-Domain Air 3
-Domain Skull 2 -1
+Domain Scalp: skull -head
+Domain Brain: -brain
+Domain Air: head
+Domain Skull: brain -skull
 

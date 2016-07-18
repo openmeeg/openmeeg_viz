@@ -28,7 +28,7 @@ MAINTAINER = 'Alexandre Gramfort'
 MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
 URL = 'http://openmeeg.github.io'
 LICENSE = 'BSD (3-clause)'
-DOWNLOAD_URL = 'http://github.com/openmeeg/openmeeg_vizp'
+DOWNLOAD_URL = 'http://github.com/openmeeg/openmeeg_viz'
 VERSION = version
 
 
@@ -58,6 +58,5 @@ if __name__ == "__main__":
                        'Operating System :: Unix',
                        'Operating System :: MacOS'],
           platforms='any',
-          packages=['openmeeg_viz', 'openmeeg_viz.tests',
-                    ],
+          packages=['openmeeg_viz', 'openmeeg_viz.tests', ],
           scripts=['bin/om_viz'])
