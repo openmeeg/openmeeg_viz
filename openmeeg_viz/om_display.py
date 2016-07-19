@@ -2,9 +2,9 @@
 """
 Created on Mon Nov 25 2013
 
-this provides two functions om_display_vtp, and om_display_vtk.
+this provides two functions display_vtp, and display_vtk.
 It can be called as:
-from openmeeg_viz.om_display import om_display_vtp # visualiation with VTK
+from openmeeg_viz import display_vtp # visualiation with VTK
 
 @author: - E. Olivi
 
@@ -121,7 +121,7 @@ def plot_selected_data(data, state, view, text_init):
 ##################################################
 
 
-def om_display_vtp(f, n=0):
+def display_vtp(f, n=0):
     """
     This function displays a VTK::vtp file generated with OpenMEEG.
     Such a file defines a polydata, containing points and triangles of several
@@ -328,7 +328,7 @@ def om_display_vtp(f, n=0):
     iren.Start()
 
 
-def om_display_vtk(f, d = 0, n = 0):
+def display_vtk(f, d = 0, n = 0):
     """
     This function displays a VTK::vtk file generated with OpenMEEG.
     Such a file defines a polydata, containing points and triangles of a single
@@ -380,7 +380,6 @@ def om_display_vtk(f, d = 0, n = 0):
                 for i in range(d.shape[0]):
                     pot[j].InsertNextValue(d[i, j])
                 poly.GetPointData().AddArray(pot[j])
-            poly.Update()
         if not poly.GetPointData().GetGlobalIds('Indices'):
             ind = vtk.vtkUnsignedIntArray()
             ind.SetName('Indices')
