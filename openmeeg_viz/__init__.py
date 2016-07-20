@@ -19,3 +19,5 @@
 
 __version__ = '0.1.dev0'
 
+from .om_display import display_vtp
+from .om_display import display_vtk

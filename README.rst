@@ -3,8 +3,8 @@ OpenMEEG visualization tools
 
 The OpenMEEG software is a C++ package for solving the forward
 problems of electroencephalography (EEG) and magnetoencephalography (MEG).
-This repository contains Python code to help the visualizetion of
-OpenMEEG files such as .geom, .tri etc.
+This repository contains Python code to help the visualization of
+OpenMEEG files such as .geom, .tri, .vtk, etc.
 
 This code has the same same license as OpenMEEG: CeCILL-B (cf. below)
 
