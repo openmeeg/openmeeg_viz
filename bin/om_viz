@@ -18,8 +18,6 @@ import sys
 import numpy as np
 import os
 
-from mayavi import mlab
-
 
 def read_geom(geom_file):
     """readGeom : provides paths to meshes present in .geom file"""
@@ -58,66 +56,82 @@ def read_geom(geom_file):
     return mesh_files
 
 
+def read_tri(fname):
+    """Read .tri file
+
+    Parameters
+    ----------
+    fname : str
+        The file to read.
+
+    Returns
+    -------
+    points : ndarray, shape (n_points, 3)
+        The vertices
+    normals : ndarray, shape (n_points, 3)
+        The normals at the vertices
+    faces : ndarray, shape (n_faces, 3)
+        The faces
+    """
+    assert(fname.endswith('.tri'))
+    fid = open(fname, "r")
+    # read the number of vertices
+    npoints = int(fid.readline().split()[1])
+
+    points = []
+    faces = []
+    normals = []
+
+    # fills the vertices arrays
+    for _ in range(npoints):
+        vals = list(map(float, fid.readline().split()))
+        points.append(vals[:3])
+        normals.append(vals[3:])
+
+    # Read the number of triangles
+    n_faces = int(fid.readline().split()[1])
+    # create the list of triangles
+    for _ in range(n_faces):
+        vals = list(map(int, fid.readline().split()))
+        faces.append(vals[:3])
+
+    # Convert to numpy arrays
+    points = np.asarray(points)
+    normals = np.asarray(normals)
+    faces = np.asarray(faces)
+    return points, normals, faces
+
+
 class Mesh(object):
-    '''
-    A class allowing to open .tri files, store the corresponding mesh
-    data (vertices and triangles), and plot their respective surfaces
+    '''Class to open .tri files and plot surfaces with mayavi
 
-    To read a .tri file, call the function 'self.read_tri(filename)'
+    Parameters
+    ----------
+    fname : str
+        The file to read.
 
-    Example:
-    --------
-    head = Mesh()
-    head.read_tri("MyHeadFile.tri")
+    Attributes
+    ----------
+    points : ndarray, shape (n_points, 3)
+        The vertices
+    normals : ndarray, shape (n_points, 3)
+        The normals at the vertices
+    faces : ndarray, shape (n_faces, 3)
+        The faces
 
+    Example
+    -------
+    head = Mesh("MyHeadFile.tri")
+
+    Notes
+    -----
     To plot the surface of the corresponding object, call the function
     'self.plot(**kwarg)'. The kwarg options are the one from
     enthought.mayavi.mlab.triangular_mesh
-
     '''
-    def __init__(self, fname=None):
-        self.points = []
-        self.faces = []
-        self.normals = []
-        if fname is not None:
-            self.read_tri(fname)
-
-    def read_tri(self, fname):
-        """Read .tri file
-
-        Parameters
-        ----------
-        fname : str
-            The file to read.
-
-        Returns
-        -------
-        self : instance of Mesh
-            The updated instanced.
-        """
-        print(fname)
-        assert(fname.endswith('.tri'))
-        fid = file(fname, "r")
-        # read the number of vertices
-        npoints = int(fid.readline().split()[1])
-        # fills the vertices arrays
-        for _ in xrange(npoints):
-            vals = map(float, fid.readline().split())
-            self.points.append(vals[:3])
-            self.normals.append(vals[3:])
-
-        # Read the number of triangles
-        n_faces = int(fid.readline().split()[1])
-        # create the list of triangles
-        for _ in xrange(n_faces):
-            vals = map(int, fid.readline().split())
-            self.faces.append(vals[:3])
-
-        # Convert to numpy arrays
-        self.points = np.asarray(self.points)
-        self.normals = np.asarray(self.normals)
-        self.faces = np.asarray(self.faces)
-        return self
+    def __init__(self, fname):
+        self.points, self.normals, self.faces = \
+            read_tri(fname)
 
     def plot(self, **kwargs):
         """Plot mesh with Mayavi
@@ -127,6 +141,7 @@ class Mesh(object):
         **kwargs : params
             Parameters passed to mlab.triangular_mesh
         """
+        from mayavi import mlab
         f = mlab.triangular_mesh(self.points[:, 0], self.points[:, 1],
                                  self.points[:, 2], self.faces, **kwargs)
         return f
@@ -135,10 +150,12 @@ class Mesh(object):
 def run():
     if '--help' in sys.argv or len(sys.argv) == 1:
         print("Usage:\n"
-            "Pass any geom txt or tri file to the command line. "
-            "For example.\n\n"
-            "om_viz model.geom mesh1.tri mesh2.tri dipoles.txt")
+              "Pass any geom txt or tri file to the command line. "
+              "For example.\n\n"
+              "om_viz model.geom mesh1.tri mesh2.tri dipoles.txt")
         return
+
+    from mayavi import mlab  # don't import mlab just to get help
 
     colors = []
     colors.append((0.95, 0.83, 0.83))  # light pink
@@ -165,7 +182,7 @@ def run():
             pts = np.loadtxt(fname)
             if pts.shape[1] == 3:
                 mlab.points3d(pts[:, 0], pts[:, 1], pts[:, 2],
-                              opacity=0.5, scale_factor=1, color=(1, 0, 0))
+                              opacity=0.5, scale_factor=0.01, color=(1, 0, 0))
             if pts.shape[1] == 6:
                 mlab.quiver3d(pts[:, 0], pts[:, 1], pts[:, 2],
                               pts[:, 3], pts[:, 4], pts[:, 5],
