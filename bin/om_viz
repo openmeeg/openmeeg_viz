@@ -141,13 +141,14 @@ class Mesh(object):
 def run():
     if '--help' in sys.argv or len(sys.argv) == 1:
         print("Usage:\n"
-            "Pass any geom txt or tri file to the command line. "
-            "For example.\n\n"
-            "om_viz model.geom mesh1.tri mesh2.tri dipoles.txt")
+              "Pass any geom txt or tri file to the command line. "
+              "For example.\n\n"
+              "om_viz model.geom mesh1.tri mesh2.tri dipoles.txt")
         return
 
     import pyvista as pv
-    plotter = pv.Plotter()
+    off_screen = os.environ.get('OM_VIZ_OFFSCREEN', 'False') == 'True'
+    plotter = pv.Plotter(off_screen=off_screen)
 
     colors = []
     colors.append((0.95, 0.83, 0.83))  # light pink
