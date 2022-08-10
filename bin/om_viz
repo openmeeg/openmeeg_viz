@@ -11,7 +11,7 @@ om_viz model.geom mesh1.tri mesh2.tri dipoles.txt
 basically om_viz displays all the files on the command line
 guessing the format with the extensions (.tri, .geom or .txt)
 
-@author: - A. Gramfort, alexandre.gramfort@telecom-paristech.fr
+@author: - A. Gramfort, alexandre.gramfort@inria.fr
 """
 
 import sys
@@ -24,17 +24,17 @@ def read_geom(geom_file):
     f = open(geom_file, 'r')
     lines = f.readlines()
     mesh_files = []
-    for l in lines:
-        words = l.split()
-        if (len(words) > 1):
-            if (words[0] == "Interfaces"):
+    for line in lines:
+        words = line.split()
+        if len(words) > 1:
+            if words[0] == "Interfaces":
                 nb_mesh = int(words[1])
                 print("Nb mesh files : %d" % nb_mesh)
                 continue
 
-        if (len(words) == 1):
+        if len(words) == 1:
             mesh_file = words[0]
-            if (mesh_file[-4:] == ".tri"):
+            if mesh_file.endswith(".tri"):
                 mesh_files.append(mesh_file)
             if not os.path.exists(mesh_file):
                 print("Could not find mesh : " + mesh_file)
@@ -42,7 +42,7 @@ def read_geom(geom_file):
 
         if ((len(words) > 1) and words[0].startswith('Interface')):
             mesh_file = words[-1][1:-1]
-            if (mesh_file[-4:] == ".tri"):
+            if mesh_file.endswith(".tri"):
                 mesh_files.append(mesh_file)
             if not os.path.exists(mesh_file):
                 print("Could not find mesh : " + mesh_file)
@@ -103,7 +103,7 @@ def read_tri(fname):
 
 
 class Mesh(object):
-    '''Class to open .tri files and plot surfaces with mayavi
+    '''Class to open .tri files and plot surfaces with pyvista
 
     Parameters
     ----------
@@ -121,30 +121,21 @@ class Mesh(object):
 
     Example
     -------
-    head = Mesh("MyHeadFile.tri")
-
-    Notes
-    -----
-    To plot the surface of the corresponding object, call the function
-    'self.plot(**kwarg)'. The kwarg options are the one from
-    enthought.mayavi.mlab.triangular_mesh
+    >>> head = Mesh("MyHeadFile.tri")
+    >>> f = head.to_poly_data()
+    >>> f.plot()
     '''
     def __init__(self, fname):
-        self.points, self.normals, self.faces = \
-            read_tri(fname)
+        self.points, self.normals, self.faces = read_tri(fname)
 
-    def plot(self, **kwargs):
-        """Plot mesh with Mayavi
-
-        Parameters
-        ----------
-        **kwargs : params
-            Parameters passed to mlab.triangular_mesh
-        """
-        from mayavi import mlab
-        f = mlab.triangular_mesh(self.points[:, 0], self.points[:, 1],
-                                 self.points[:, 2], self.faces, **kwargs)
-        return f
+    def to_poly_data(self):
+        """Return as pyvista.PolyData"""
+        import pyvista as pv
+        faces = np.c_[
+            3 * np.ones(len(self.faces), dtype=np.int64),
+            self.faces
+        ].ravel()
+        return pv.PolyData(self.points, faces)
 
 
 def run():
@@ -155,7 +146,9 @@ def run():
               "om_viz model.geom mesh1.tri mesh2.tri dipoles.txt")
         return
 
-    from mayavi import mlab  # don't import mlab just to get help
+    import pyvista as pv
+    off_screen = os.environ.get('OM_VIZ_OFFSCREEN', 'False') == 'True'
+    plotter = pv.Plotter(off_screen=off_screen)
 
     colors = []
     colors.append((0.95, 0.83, 0.83))  # light pink
@@ -165,30 +158,29 @@ def run():
 
     colors = colors * 3
     cnt = 0
-    for ii, fname in enumerate(sys.argv[1:]):
+    opacity = 0.4
+    for _, fname in enumerate(sys.argv[1:]):
         print(fname)
         if fname.endswith(".tri"):
-            mesh = Mesh(fname)
-            mesh.plot(color=colors[cnt], opacity=0.4)
+            mesh = Mesh(fname).to_poly_data()
+            plotter.add_mesh(mesh, color=colors[cnt], opacity=opacity)
             cnt += 1
 
         if fname.endswith(".geom"):
             for fn in read_geom(fname):
-                mesh = Mesh(fn)
-                mesh.plot(color=colors[cnt], opacity=0.4)
+                mesh = Mesh(fn).to_poly_data()
+                plotter.add_mesh(mesh, color=colors[cnt], opacity=opacity)
                 cnt += 1
 
         if fname.endswith(".txt"):
             pts = np.loadtxt(fname)
-            if pts.shape[1] == 3:
-                mlab.points3d(pts[:, 0], pts[:, 1], pts[:, 2],
-                              opacity=0.5, scale_factor=0.01, color=(1, 0, 0))
+            point_cloud = pv.PolyData(pts[:, :3])
+            plotter.add_mesh(point_cloud, opacity=0.5, color=(1, 0, 0))
             if pts.shape[1] == 6:
-                mlab.quiver3d(pts[:, 0], pts[:, 1], pts[:, 2],
-                              pts[:, 3], pts[:, 4], pts[:, 5],
-                              opacity=0.5, scale_factor=0.01, color=(0, 1, 0),
-                              mode='cone')
-    mlab.show()
+                point_cloud['vectors'] = pts[:, 3:]
+                arrows = point_cloud.glyph(scale=True, factor=1.0)
+                plotter.add_mesh(arrows, color=(0, 0, 1))
+    plotter.show()
 
 
 if __name__ == '__main__':

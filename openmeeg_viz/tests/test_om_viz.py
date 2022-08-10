@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
-from os import path as op
+import os
+import os.path as op
 import shutil
 import tempfile
 import warnings
-from StringIO import StringIO
-
-from nose.tools import assert_true
+from io import StringIO
 
 
 class _TempDir(str):
@@ -29,6 +28,7 @@ class _TempDir(str):
 
     def __del__(self):
         shutil.rmtree(self._path, ignore_errors=True)
+
 
 tempdir = _TempDir()
 
@@ -73,15 +73,16 @@ def check_usage(module, force_help=False):
             module.run()
         except SystemExit:
             pass
-        assert_true('Usage:' in out.stdout.getvalue())
+        assert 'Usage:' in out.stdout.getvalue()
 
 
 def test_om_viz():
     """Test om_viz"""
-    from mayavi import mlab
-    mlab.options.offscreen = True
     import om_viz
+    import pyvista as pv
 
+    os.environ['OM_VIZ_OFFSCREEN'] = 'True'
     check_usage(om_viz)
     with ArgvSetter((geom_fname,)):
         om_viz.run()
+        pv.close_all()
