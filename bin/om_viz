@@ -24,17 +24,17 @@ def read_geom(geom_file):
     f = open(geom_file, 'r')
     lines = f.readlines()
     mesh_files = []
-    for l in lines:
-        words = l.split()
-        if (len(words) > 1):
-            if (words[0] == "Interfaces"):
+    for line in lines:
+        words = line.split()
+        if len(words) > 1:
+            if words[0] == "Interfaces":
                 nb_mesh = int(words[1])
                 print("Nb mesh files : %d" % nb_mesh)
                 continue
 
-        if (len(words) == 1):
+        if len(words) == 1:
             mesh_file = words[0]
-            if (mesh_file[-4:] == ".tri"):
+            if mesh_file.endswith(".tri"):
                 mesh_files.append(mesh_file)
             if not os.path.exists(mesh_file):
                 print("Could not find mesh : " + mesh_file)
@@ -42,7 +42,7 @@ def read_geom(geom_file):
 
         if ((len(words) > 1) and words[0].startswith('Interface')):
             mesh_file = words[-1][1:-1]
-            if (mesh_file[-4:] == ".tri"):
+            if mesh_file.endswith(".tri"):
                 mesh_files.append(mesh_file)
             if not os.path.exists(mesh_file):
                 print("Could not find mesh : " + mesh_file)
